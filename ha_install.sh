@@ -168,6 +168,7 @@ find /usr/lib/python${PYTHON_VERSION}/site-packages/numpy -iname tests | xargs r
 
 echo "Install base requirements from PyPI..."
 pip3 install --no-cache-dir wheel
+pip3 install --no-cache-dir poetry
 pip3 freeze > /tmp/freeze.txt
 grep -E 'aiohttp|async-timeout|crypto|YAML' /tmp/freeze.txt > /tmp/owrt_constraints.txt
 
@@ -179,6 +180,7 @@ EOF
 
 mkdir -p ${STORAGE_TMP}
 
+TMPDIR=${STORAGE_TMP} pip3 install --no-cache-dir --no-deps --no-build $(version zeroconf)
 TMPDIR=${STORAGE_TMP} pip3 install --no-cache-dir --no-deps -r /tmp/requirements_nodeps.txt
 # add zeroconf
 grep 'zeroconf' /tmp/requirements_nodeps.txt >> /tmp/owrt_constraints.txt
