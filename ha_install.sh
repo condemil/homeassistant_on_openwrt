@@ -6,6 +6,9 @@ set -e
 HOMEASSISTANT_MAJOR_VERSION="2024.2"
 export PIP_DEFAULT_TIMEOUT=100
 
+RED="\e[31m"
+ENDCOLOR="\e[0m"
+
 get_ha_version()
 {
   wget -q -O- https://pypi.org/simple/homeassistant/ | grep ${HOMEASSISTANT_MAJOR_VERSION} | tail -n 1 | cut -d "-" -f2 | cut -d "." -f1,2,3
@@ -43,6 +46,13 @@ version()
 is_lumi_gateway()
 {
   ls -1 /dev/ttymxc1 2>/dev/null || echo ''
+}
+
+pip_install()
+{
+  local pkg=$1
+  echo "${RED}Installing python package: ${pkg}${ENDCOLOR}"
+  TMPDIR=${STORAGE_TMP} pip3 install --no-cache-dir -c /tmp/owrt_constraints.txt ${pkg}
 }
 
 function int_version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
@@ -175,64 +185,61 @@ grep 'zeroconf' /tmp/requirements_nodeps.txt >> /tmp/owrt_constraints.txt
 # fix deps
 sed -i -e 's/cryptography \(.*\)/cryptography >=36.0.2/' -e 's/chacha20poly1305-reuseable \(.*\)/chacha20poly1305-reuseable >=0.10.0/' /usr/lib/python${PYTHON_VERSION}/site-packages/aioesphomeapi-*-info/METADATA
 
-cat << EOF > /tmp/requirements.txt
-tzdata>=2021.2.post0  # 2021.6+ requirement
+$(pip_install tzdata>=2021.2.post0)  # 2021.6+ requirement
 
-$(version atomicwrites-homeassistant)  # nabucasa dep
-$(version snitun)  # nabucasa dep
-$(version astral)
-$(version awesomeversion)
-$(version PyJWT)
-$(version voluptuous)
-$(version voluptuous-serialize)
-# $(version sqlalchemy)  # recorder requirement
-$(version ulid-transform)  # utils
-$(version packaging)
-$(version aiohttp-fast-url-dispatcher)
-$(version psutil-home-assistant)
-#$(version aiohttp-zlib-ng)
+$(pip_install $(version atomicwrites-homeassistant))  # nabucasa dep
+$(pip_install $(version snitun))  # nabucasa dep
+$(pip_install $(version astral))
+$(pip_install $(version awesomeversion))
+$(pip_install $(version PyJWT))
+$(pip_install $(version voluptuous))
+$(pip_install $(version voluptuous-serialize))
+# $(pip_install $(version sqlalchemy))  # recorder requirement
+$(pip_install $(version ulid-transform))  # utils
+$(pip_install $(version packaging))
+$(pip_install $(version aiohttp-fast-url-dispatcher))
+$(pip_install $(version psutil-home-assistant))
+#$(pip_install $(version aiohttp-zlib-ng))
 
 # homeassistant manifest requirements
-$(version PyQRCode)
-$(version pyMetno)
-$(version mutagen)
-$(version pyotp)
-$(version gTTS)
-$(version janus)  # file_upload
-$(version securetar)  # backup
-$(version pyudev)  # usb
-$(version pycognito)
-$(version python-miio)  # xiaomi_miio
-$(version PyXiaomiGateway)
-$(version scapy)  # dhcp
-$(version aiodiscover)  # dhcp
-$(version httpx)  # image/http
-$(version hassil)  # conversation
-$(version home-assistant-intents)  # conversation
+$(pip_install $(version PyQRCode))
+$(pip_install $(version pyMetno))
+$(pip_install $(version mutagen))
+$(pip_install $(version pyotp))
+$(pip_install $(version gTTS))
+$(pip_install $(version janus))  # file_upload
+$(pip_install $(version securetar))  # backup
+$(pip_install $(version pyudev))  # usb
+$(pip_install $(version pycognito))
+$(pip_install $(version python-miio))  # xiaomi_miio
+$(pip_install $(version PyXiaomiGateway))
+$(pip_install $(version scapy))  # dhcp
+$(pip_install $(version aiodiscover))  # dhcp
+$(pip_install $(version httpx))  # image/http
+$(pip_install $(version hassil))  # conversation
+$(pip_install $(version home-assistant-intents))  # conversation
 
 # fixed dependencies
-python-jose[cryptography]==3.2.0  # (pycognito dep) 3.3.0 is not compatible with the python3-cryptography in the feed
-fnvhash==0.1.0  # replacement for fnv-hash-fast in recorder
-radios==0.1.1  # radio_browser, newer versions require orjson
-async-upnp-client==0.36.2  # 0.38 requires aiohttp>=3.9
+$(pip_install python-jose[cryptography]==3.2.0)  # (pycognito dep) 3.3.0 is not compatible with the python3-cryptography in the feed
+$(pip_install fnvhash==0.1.0)  # replacement for fnv-hash-fast in recorder
+$(pip_install radios==0.1.1)  # radio_browser, newer versions require orjson
+$(pip_install async-upnp-client==0.36.2)  # 0.38 requires aiohttp>=3.9
 
 # aioesphomeapi dependencies
-noiseprotocol
-protobuf
-aiohappyeyeballs
-chacha20poly1305-reuseable
+$(pip_install noiseprotocol)
+$(pip_install protobuf)
+$(pip_install aiohappyeyeballs)
+$(pip_install chacha20poly1305-reuseable)
 
 # extra services
-hass-configurator==0.4.1
-EOF
+$(pip_install hass-configurator==0.4.1)
 
 if [ $LUMI_GATEWAY ]; then
-  cat << EOF >> /tmp/requirements.txt
 # zha requirements
-$(version pyserial)
-$(version zha-quirks)
-$(version zigpy)
-$(version zigpy-zigate)
+$(pip_install $(version pyserial))
+$(pip_install $(version zha-quirks))
+$(pip_install $(version zigpy))
+$(pip_install $(version zigpy-zigate))
 EOF
 fi
 
